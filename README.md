@@ -7,7 +7,8 @@ Read the complete architectural breakdown, anti-patterns, and implementation rat
 👉 **[Why Your Venafi TPP Policy Tree Is Breaking Automated Renewals (And How to Fix It)](https://nekoclm.com/pages/blogs/tpp-policy-tree.html)**
 
 ## Contents
-* `tpp-policy-tree-best-practices.mdml (.pdf)` — Reference hierarchy layout, inheritance rules, and naming conventions.
+* [`policy-tree-structure.bp.pdf`](./policy-tree-structure.bp.pdf) — Formatted PDF reference guide.
+* [`policy-tree-structure.bp.mdml`](./policy-tree-structure.bp.mdml) — Plain-text / Markdown source version.
 
 ## About Neko Consulting LLC
 Independent, fixed-scope consulting for Certificate Lifecycle Management (CLM), Machine Identity Management, Venafi TPP / TLS Protect Cloud, and Microsoft ADCS.
