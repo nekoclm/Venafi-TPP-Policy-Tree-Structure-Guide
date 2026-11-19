@@ -1,0 +1,240 @@
+# Best Practice Policy Tree
+~~~ For TPP [see anecdote tpp^1]
+
+## Fundamentals
+	Master Administrators typically interact with Venafi Trust Protection Platform through the WebAdmin (VedAdmin) console, where the left pane displays the hierarchical folder structure known as the Policy Tree. Policies (or Policy Folders) are used to apply permissions, control workflow, lock and unlock attributes or features, and control settings related to Certificate Lifecycle Management. Best practice is for Master Administrators to carefully consider the Policy Tree Structure before creating or importing significant certificate inventory so as to standardize object configuration parameters and enforce security requirements. In the Venafi ecosystem, bad Policy Tree design is one of the top causes of permission creep, failed automated renewals, and unmanageable inheritance locks.
+	
+	**Locking and Unlocking attributes and settings**
+	- Locked Attributes: Locks applied to attributes and settings on a policy (e.g., Organization name, approved domains, disabling key reuse) prevents users without the necessary access and control from overriding the locked attribute or setting in sub-policies they operate within.
+	- Unlocked Attributes: Attributes and settings may be left unlocked (e.g., standard CA template or contact distribution list) to allow end users operating in low-level policies the ability to customize for specific team related purposes or edge cases.
+	
+	**Policies vs Objects**
+	- For clarity, think of a Policy (or Policy Folder) as a folder on your computer that sets the security rules for everything stored inside it.
+	- An Object is simply an individual file sitting inside that folder—like a specific certificate, server, or connection driver.
+	- *Note for Master Admins*: Under the hood, TPP treats virtually everything (including policy folders themselves) as system objects, but in daily operations, "Object" refers to the resources inside the folder.
+	
+	~~~ For more information please review the vendor knowledge article at this link: https://community.cyberark.com/s/article/TPF-Best-Practices-Policy-Tree-Design
+		
+### The Policy Tree Structure
+	To ensure future scalability and maintainability, any new or existing TPP deployment should maintain a well structured Policy Tree. Typically, 3 levels constitute the minimum best practice  Policy Tree structure; Top, Mid, and Low level. 
+	
+	**Top Level**  
+	* This level is considered the highest (or lowest if you reverse perspective) and would define the core organization of sub-policies and objects. This is also the level where global values and permissions will be set. For instance, the Subject Information that your overall enterprise organization might use will be globally configured at this level so that those values inherit downward (or, again, if you reverse perspective - upward). 
+	* *Subject DN & Baseline Governance*: Lock core attributes (Organization, Country, Approved SAN Domains) at the Top Tier so local team admins cannot generate non-compliant certificates or bypass corporate PKI standards.
+	:Example: Top Level (Global)
+	
+	Ved -
+		> Administration
+		> Certificate Authorities [see anecdote pt^1]
+		> Certificates
+		> Installations
+		> Venafi Operational Cert
+
+	**Mid Level**  
+	* The Mid Level partitions the environment by Line of Business (LoB), functional team (SecOps, WebServices, ITOps), or network security zone. This is where primary operational permissions (RBAC), team contacts, default approvers, and Organizational Unit (OU) naming rules are applied.
+	:Example: Mid Level (Line of Business / Organizational)
+	
+	Ved - 
+		> Administration
+			* Credentials
+			* Workflows
+		> Certificate Authorities
+			* DigiCert
+			* Client_private_PKI
+			* Client_private_test_PKI
+		> Certificates
+			* Discovered [see anecdote pt^2]
+				-- Default Vendor Issuers
+				-- Known Issuers
+					>> DigiCert
+					>> Global Sign
+					>> Client_private_PKI
+					>> Symantec (legacy)
+				-- Self-signed
+				-- Unknown_other
+			* Security_Ops
+				-- WAF_certs_auto
+				-- Internal_certs
+				-- External_certs
+			* WebServices
+				-- CAPI_certs_auto
+				-- Apache_certs_auto
+				-- Nginx_certs_auto
+				-- Internal_certs
+				-- External_certs
+			* ITOps
+				-- LB_certs_auto
+				-- Internal_certs
+				-- External_certs
+			* Network_zone1701
+				-- Pike_certs_auto
+				-- Kirk_certs_auto
+			* Network_zone1701c
+		> Installations
+			* Agent [see anecdote pt^3]
+			* Agentless [see anecdote pt^3]
+				-- Security_Ops
+					>> WAF
+					>> SecOps_IIS
+					>> SecOps_AKV
+				-- WebServices
+					>> CAPI
+					>> Apache
+					>> Nginx
+				-- ITOps
+					>> LoadBalancers
+					>> IoT
+					>> ITOps_AKV
+				-- Network_zone1701
+				-- Network_zone1701c
+				-- Network_zone1701d
+		> Venafi Operational Certificates
+			* {cert-object}
+			* {cert-object}
+			* {cert-object}
+
+	**Low Level**  
+	* The low level and any subsequent levels below this should be where various objects reside or where structure for very specific and infrequent use-cases are built.
+	:Example: Low Level (Certificate Object / Use-Case Specific)
+	
+	Ved - 
+		> Administration
+			* Credentials
+				-- {credential-object}
+				-- {credential-object}
+				-- {credential-object}
+				-- {credential-object}
+				-- {credential-object}
+			* Workflows
+				-- {workflow-object}
+				-- {workflow-object}
+				-- {workflow-object}
+				-- {workflow-object}
+		> Certificate Authorities
+			* DigiCert
+				-- {DigiCert-ConnectorA}
+				-- {DigiCert-ConnectorB}
+			* Client_private_PKI
+				-- {P_PKI-ConnectorA}
+			* Client_private_test_PKI
+				-- {T_PKI-ConnectorA}
+		> Certificates
+			* Discovered [see anecdote pt^2]
+				-- Default Vendor Issuers
+				-- Known Issuers
+					>> DigiCert
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {digicert-cert-object}
+						~ {etc...}
+					>> Global Sign
+						~ {globalsign-cert-object}
+						~ {globalsign-cert-object}
+						~ {etc...}
+					>> Client_private_PKI
+						~ {p_pki-cert-object}
+						~ {etc...}
+					>> Symantec (legacy)
+				-- Self-signed
+					>> {bad_selfsign-cert-object}
+					>> {etc...}
+				-- Unknown_other
+					>> {unknown-cert-object}
+					>> {etc...}
+			* Security_Ops
+				-- WAF_certs_auto
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Internal_certs
+				-- External_certs
+			* WebServices
+				-- CAPI_certs_auto
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Apache_certs_auto
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Nginx_certs_auto
+					>> {automated_cert-object}
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Internal_certs
+				-- External_certs
+			* ITOps
+				-- LB_certs_auto
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Internal_certs
+				-- External_certs
+			* Network_zone1701
+				-- Pike_certs_auto
+					>> {automated_cert-object}
+					>> {etc...}
+				-- Kirk_certs_auto
+					>> {automated_cert-object}
+					>> {etc...}
+			* Network_zone1701c
+		> Installations
+			* Agent [see anecdote pt^3]
+			* Agentless [see anecdote pt^3]
+				-- Security_Ops
+					>> WAF
+					>> SecOps_IIS
+					>> SecOps_AKV
+				-- WebServices
+					>> CAPI
+						~ {<capi-provisioning-driverA>}
+						~ {<capi-provisioning-driverB>}
+						~ {<capi-provisioning-driverC>}
+						~ {<etc...>}
+					>> Apache
+					>> Nginx
+				-- ITOps
+					>> LoadBalancers
+						~ {<f5-provisioning-driverA>}
+						~ {<f5-provisioning-driverB>}
+						~ {<f5-provisioning-driverC>}
+						~ {<etc...>}
+						~ {<awslb-provisioning-driverA>}
+						~ {<awslb-provisioning-driverB>}
+						~ {<awslb-provisioning-driverC>}
+						~ {<etc...>}
+					>> IoT
+					>> ITOps_AKV
+				-- Network_zone1701
+					>> {<jks-provisioning-driver_pike>}
+					>> {<jks-provisioning-driver_kirk>}
+					>> {<etc...>}
+				-- Network_zone1701c
+				-- Network_zone1701d
+		> Venafi Operational Certificates
+			* {cert-object}
+			* {cert-object}
+			* {cert-object}
+			
+			
+### Anecdotes
+	- tpp^1 = Although this guide to the Policy Tree Structure and relevant Best Practices is specifically for the Trust Protection Platform, many of the concepts here can and will map to TLSPC's Application Folder structure but not perfectly. For instance, TLSPC Application Folder structures have reduced breadth and specificity with regard to permissions, inheritance, and unique configuration tolerability. 
+	- pt^1 = *Certificate Authorities* could exist at the Top Level or as a Mid Level policy within a Top Level policy such as the "Administration" policy. It depends on how the enterprise organization wishes to configure the CAs in TPP and what permissions they would like to grant. 
+	- pt^2 = The *Discovered policy* and relevant sub-policies are crucial to *Network Discovery*, *CA Imports*, and other certificate discovery processes. 
+	- pt^3 = Having an *Agent* and *Agentless* sub-policy in the Installations policy is a bit legacy. Nearly all enterprise organizations are performing "Agentless" certificate automations (colloquially known as Certificate Provisioning). If an enterprise organization does not know about or plan to use Venafi TPP Agents, then these two distinct policies are likely unnecessary and can be removed. 
+	
+---
+
+### Is Your Venafi TPP Policy Tree Built to Scale?
+
+A disorganized Policy Tree causes broken auto-enrollments, loose private key access, and endless operational friction. 
+
+Neko Consulting provides fixed-outcome **State-Assessments** and **Deployments** for Venafi TPP and TLS Protect Cloud ecosystems. We audit your policy hierarchy, driver health, and database performance—or build a hardened deployment from scratch—without open-ended billable hours.
+
+👉 **Learn more at [nekoclm.com](https://nekoclm.com)** or reach out directly to align your architecture.
